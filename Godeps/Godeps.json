@@ -1,0 +1,20 @@
+{
+	"ImportPath": "github.com/UmbrellaOps/docker-utils",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-107-g942282e",
+			"Rev": "942282e931e8286aa802a30b01fa7e16befb50f3"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/units",
+			"Comment": "v1.4.1-3329-gaf9dac9",
+			"Rev": "af9dac9627e7b04a803df152cc24f0db073ea17a"
+		},
+		{
+			"ImportPath": "github.com/samalba/dockerclient",
+			"Rev": "b6f99fa7dfec9b8cf130047b8f92902aaca962d5"
+		}
+	]
+}
