@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func RemoveDockerContainers(test bool) {
+func RemoveDockerContainers(test bool) error {
 	// Init the client
 	docker, err := dockerclient.NewDockerClient("unix:///var/run/docker.sock", nil)
 	if err != nil {
@@ -20,11 +20,12 @@ func RemoveDockerContainers(test bool) {
 	}
 	log.Println("Following containers will be deleted")
 	for _, c := range containers {
-		if strings.Contains(c.Status,"Exit") {
+		if strings.Contains(c.Status, "Exit") {
 			log.Println(c.Names)
 		}
 	}
 	if test {
 		log.Println("Test - No action taken")
 	}
+	return err
 }
