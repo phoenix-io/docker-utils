@@ -38,6 +38,7 @@ func (ctx *UtilContext) RemoveDockerContainers(test bool) error {
 	if test {
 		log.Println("Test - No action taken")
 	}
+	return err
 }
 
 func (ctx *UtilContext) RemoveDockerImages(test bool) error {
