@@ -35,6 +35,13 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:  "compactimages",
+			Usage: "Compacts the images by flaterning",
+			Action: func(c *cli.Context) {
+				log.Println("Compacts the images by flterning")
+			},
+		},
 	}
 
 	app.Run(os.Args)
