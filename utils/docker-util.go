@@ -1,9 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/samalba/dockerclient"
 	"log"
-	"fmt"
 	"strings"
 )
 
@@ -23,7 +23,7 @@ func InitUtilContext() (*UtilContext, error) {
 
 }
 
-func (ctx *UtilContext) DeleteSingleContainer(container string, id bool) error {
+func (ctx *UtilContext) DeleteSingleContainer(container string, id bool, dry_run bool) error {
 
 	// Get the container
 	var filter string
@@ -41,14 +41,12 @@ func (ctx *UtilContext) DeleteSingleContainer(container string, id bool) error {
 	}
 	if len(containers) > 1 {
 		log.Println("More then one option found with same id or name.")
-		return error("More then one option found with same id or name")
+		return err //error("More then one option found with same id or name")
 	}
 
-	err = DeleteContainer(containers, "")
+	err = ctx.DeleteContainer(containers, "", dry_run)
 
 	return err
-
-
 
 }
 
@@ -65,18 +63,18 @@ func (ctx *UtilContext) DeleteExitedContainers(dry_run bool) error {
 
 	log.Println("Following containers will be deleted")
 
-	err = DeleteContainer(containers, "Exited")
+	err = ctx.DeleteContainer(containers, "Exited", dry_run)
 
 	return err
 }
 
-func (ctx *UtilContext) DeleteContainer(containerList *dockerclient.Container,status string) (err error) {
+func (ctx *UtilContext) DeleteContainer(containerList []dockerclient.Container, status string, dry_run bool) (err error) {
 
 	for _, c := range containerList {
 		if strings.Contains(c.Status, status) {
 			log.Println(c.Names)
 			if !dry_run {
-				err = ctx.client.RemoveContainer(c.ID, true, true)
+				err = ctx.client.RemoveContainer(c.Id, true, true)
 				if err != nil {
 					log.Println(err)
 				}
@@ -88,13 +86,35 @@ func (ctx *UtilContext) DeleteContainer(containerList *dockerclient.Container,st
 }
 
 func (ctx *UtilContext) RemoveDockerImage(image string, id bool) error {
+	//FIXME: image delete for id
+
+	imageInfo, err := ctx.client.RemoveImage(image)
+	if err != nil {
+		log.Printf("Unable to delete the Image: %v\n", err)
+		return err
+	}
+
+	log.Println(imageInfo)
+	return err
 
 }
 
 func (ctx *UtilContext) RemoveUntaggedDockerImages(dry_run bool) error {
+	imageList, err := ctx.client.ListImages()
+	if err != nil {
+		log.Printf("Unable to list the images : %v\n", err)
+		return err
+	}
 
+	for _, image := range imageList {
+		if len(image.RepoTags) == 0 {
+			log.Println(image.Id)
+			// ctx.client.RemoveImage(image.Id)
+		}
+	}
+	return err
 }
 
 func (ctx *UtilContext) CompactImage(id string) {
-
+	log.Println("NOT IMPLEMENTED")
 }
