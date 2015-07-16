@@ -1,8 +1,9 @@
 package main
 
 import (
-	_ "github.com/UmbrellaOps/docker-utils/utils"
+	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/kunalkushwaha/docker-utils/utils"
 	"log"
 	"os"
 )
@@ -12,54 +13,61 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "docker-utils"
 	app.Usage = "Toolchain for docker"
+	app.Version = "0.1.0"
 	app.Commands = []cli.Command{
 		{
-			Name:  "clean",
+			Name:  "rmi",
 			Usage: "deletes the docker images",
-			Subcommands: []cli.Command{
-				{
-					Name:    "images",
-					Aliases: []string{"i"},
-					Usage:   "remove untag Docker Images",
-					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name:  "dry",
-							Usage: "dry_run the command",
-						},
-						cli.StringFlag{
-							Name:  "name",
-							Usage: "dry_run the command",
-						},
-						cli.StringFlag{
-							Name:  "id",
-							Usage: "dry_run the command",
-						},
-					},
-					Action: func(c *cli.Context) {
-						removeImages(c)
-					},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "dry",
+					Usage: "[Optional] dry_run the command",
 				},
-				{
-					Name:    "container",
-					Aliases: []string{"c"},
-					Usage:   "remove an stopped containers",
-					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name:  "dry",
-							Usage: "dry_run the command",
-						},
-					},
-					Action: func(c *cli.Context) {
-						removeContainers(c)
-					},
+				cli.BoolFlag{
+					Name:  "untagged",
+					Usage: "[Required] deletes untagged images",
 				},
+			},
+			Action: func(c *cli.Context) {
+				removeImages(c)
 			},
 		},
 		{
-			Name:  "compactimages",
-			Usage: "Compacts the images by flaterning",
+			Name:  "rm",
+			Usage: "deletes docker containers",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "dry",
+					Usage: "[Optional] dry_run the command",
+				},
+				cli.BoolFlag{
+					Name:  "exited",
+					Usage: "[Required] deletes exited containers",
+				},
+			},
 			Action: func(c *cli.Context) {
-				log.Println("Compacts the images by flterning")
+				removeContainers(c)
+			},
+		},
+		{
+			Name:  "flatten",
+			Usage: "Compacts the images by flattening",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "image",
+					Usage: "[Required] Image file to flatten",
+				},
+				cli.StringFlag{
+					Name:  "name",
+					Usage: "[Required] New name of Image file",
+				},
+				cli.StringFlag{
+					Name:  "tag",
+					Usage: "[Required] tag for new image",
+				},
+			},
+			Action: func(c *cli.Context) {
+				flattenImage(c)
 			},
 		},
 	}
@@ -67,18 +75,86 @@ func main() {
 	app.Run(os.Args)
 }
 
-// remove images based on given arguments
-func removeImages(c *cli.Context) bool {
-	log.Println(c.String("dry"))
-	log.Println(c.String("name"))
-	log.Println(c.String("id"))
-	log.Println("NOT IMPLEMENTED")
-	return false
+// Intialze the docker client
+func getUtilContext() *utils.UtilContext {
+	ctx, err := utils.InitUtilContext()
+	if err != nil {
+		log.Println("Unable to initialze the dockerclient.")
+		log.Println("Docker daemon should be running")
+		return nil
+	}
+	return ctx
+}
+
+// remove untagged images
+func removeImages(c *cli.Context) {
+	dry := c.Bool("dry")
+	untagged := c.Bool("untagged")
+
+	if !untagged {
+		cli.ShowCommandHelp(c, "rmi")
+		fmt.Println("EXAMPLE:")
+		fmt.Println("   command rmi --untagged")
+		return
+	}
+
+	ctx := getUtilContext()
+	if ctx == nil {
+		return
+	}
+
+	ctx = getUtilContext()
+	if ctx == nil {
+		return
+	}
+
+	if untagged == true {
+		ctx.RemoveUntaggedDockerImages(dry)
+	}
+	return
 }
 
 // delete containers which are not running
-func removeContainers(c *cli.Context) bool {
-	//	utils.DeleteSingleContainer("aaa",true,true)
-	return false
+func removeContainers(c *cli.Context) {
+	dry := c.Bool("dry")
+	exited := c.Bool("exited")
 
+	if !exited {
+		cli.ShowCommandHelp(c, "rm")
+		fmt.Println("EXAMPLE:")
+		fmt.Println("   command rm --exited")
+		return
+	}
+
+	ctx := getUtilContext()
+	if ctx == nil {
+		return
+	}
+
+	if exited == true {
+		ctx.DeleteExitedContainers(dry)
+	}
+
+	return
+}
+
+func flattenImage(c *cli.Context) {
+	image := c.String("image")
+	name := c.String("name")
+	tag := c.String("tag")
+
+	if image == "" && name == "" && tag == "" {
+		cli.ShowCommandHelp(c, "flatten")
+		fmt.Println("EXAMPLE:")
+		fmt.Println("   command flatten --image debian --name debian-new --tag compact")
+		return
+	}
+	ctx := getUtilContext()
+	if ctx == nil {
+		return
+	}
+
+	ctx.FlattenImage(image, name, tag)
+
+	return
 }
