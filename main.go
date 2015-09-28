@@ -1,9 +1,9 @@
 package main
 
 import (
+	"docker-utils/utils"
 	"fmt"
 	"github.com/codegangsta/cli"
-	"github.com/kunalkushwaha/docker-utils/utils"
 	"log"
 	"os"
 )
@@ -13,7 +13,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "docker-utils"
 	app.Usage = "Toolchain for docker"
-	app.Version = "0.1.0"
+	app.Version = "0.2.0"
 	app.Commands = []cli.Command{
 		{
 			Name:  "rmi",
@@ -37,12 +37,17 @@ func main() {
 			Usage: "deletes docker containers",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
+					Name:  "exited",
+					Usage: "[Required] deletes exited containers",
+				},
+				cli.BoolFlag{
 					Name:  "dry",
 					Usage: "[Optional] dry_run the command",
 				},
-				cli.BoolFlag{
-					Name:  "exited",
-					Usage: "[Required] deletes exited containers",
+				cli.IntFlag{
+					Name:  "hours",
+					Value: 24,
+					Usage: "[Optional] hours before containers exited/stopped",
 				},
 			},
 			Action: func(c *cli.Context) {
@@ -118,12 +123,16 @@ func removeImages(c *cli.Context) {
 func removeContainers(c *cli.Context) {
 	dry := c.Bool("dry")
 	exited := c.Bool("exited")
+	hours := c.Int("hours")
 
 	if !exited {
 		cli.ShowCommandHelp(c, "rm")
 		fmt.Println("EXAMPLE:")
 		fmt.Println("   command rm --exited")
 		return
+	}
+	if hours <= 0 {
+		hours = 24
 	}
 
 	ctx := getUtilContext()
@@ -132,7 +141,7 @@ func removeContainers(c *cli.Context) {
 	}
 
 	if exited == true {
-		ctx.DeleteExitedContainers(dry)
+		ctx.DeleteExitedContainers(dry, hours)
 	}
 
 	return
