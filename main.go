@@ -1,7 +1,7 @@
 package main
 
 import (
-	"docker-utils/utils"
+	"github.com/phoenix-io/docker-utils/utils"
 	"fmt"
 	"github.com/codegangsta/cli"
 	"log"
