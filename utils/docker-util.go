@@ -1,12 +1,15 @@
 package utils
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/samalba/dockerclient"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -15,8 +18,55 @@ type UtilContext struct {
 	client *dockerclient.DockerClient
 }
 
+func getTlsConfig() (*tls.Config, error) {
+
+	var tlsConfig tls.Config
+
+	tlsConfig.InsecureSkipVerify = true //os.Getenv("DOCKER_TLS_VERIFY")
+
+	caCert, err := ioutil.ReadFile(filepath.Join(os.Getenv("DOCKER_CERT_PATH"), "ca.pem"))
+	if err != nil {
+		//		fmt.Println("Unable to read ca.pem")
+		return &tlsConfig, err
+	}
+	serverCert, err := ioutil.ReadFile(filepath.Join(os.Getenv("DOCKER_CERT_PATH"), "server.pem"))
+	if err != nil {
+		//		fmt.Println("Unable to read server.pem")
+		return &tlsConfig, err
+	}
+	serverKey, err := ioutil.ReadFile(filepath.Join(os.Getenv("DOCKER_CERT_PATH"), "server-key.pem"))
+	if err != nil {
+		//		fmt.Println("Unable to read server-key.pem")
+		return &tlsConfig, err
+	}
+
+	certPool := x509.NewCertPool()
+
+	ok := certPool.AppendCertsFromPEM(caCert)
+	if !ok {
+		return &tlsConfig, fmt.Errorf("Error in read ca.pem file")
+	}
+
+	tlsConfig.RootCAs = certPool
+	keypair, err := tls.X509KeyPair(serverCert, serverKey)
+	if err != nil {
+		return &tlsConfig, err
+	}
+
+	tlsConfig.Certificates = []tls.Certificate{keypair}
+
+	return &tlsConfig, nil
+
+}
+
 func InitUtilContext() (*UtilContext, error) {
-	client, err := dockerclient.NewDockerClient("unix:///var/run/docker.sock", nil)
+	dockerHost := os.Getenv("DOCKER_HOST")
+	tlsConfig, _ := getTlsConfig()
+	if dockerHost == "" {
+		dockerHost = "unix:///var/run/docker.sock"
+		tlsConfig = nil
+	}
+	client, err := dockerclient.NewDockerClient(dockerHost, tlsConfig)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -151,7 +201,7 @@ func (ctx *UtilContext) exportImage(image string, dir string) (string, error) {
 	// store id
 	// on exit of container, do export.
 	config := dockerclient.ContainerConfig{Image: image, Cmd: []string{"/bin/bash"}}
-	id, err := ctx.client.CreateContainer(&config, "")
+	id, err := ctx.client.CreateContainer(&config, "", nil)
 	if err != nil {
 		fmt.Printf("Error while create container \n")
 		return "", err
